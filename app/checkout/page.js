@@ -1,39 +1,42 @@
 "use client";
-import { useState } from "react";
-import { ShieldCheck, Lock, ArrowLeft, Truck } from "lucide-react";
-import Image from "next/image";
+import { useState, useEffect } from "react";
+import { Lock, ArrowLeft, Truck } from "lucide-react";
 import Link from "next/link";
 import Script from "next/script";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const [isProcessing, setIsProcessing] = useState(false);
+  const searchParams = useSearchParams();
+  const initialQty = parseInt(searchParams.get('qty') || '1');
   
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [product, setProduct] = useState(null);
+
   // Form State
   const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    phone: "", // Added
-    address: "",
-    city: "",
-    state: "", // Added
-    zip: ""
+    name: "", email: "", phone: "", address: "", city: "", state: "", zip: ""
   });
 
-  const handleChange = (e) => {
-    setFormData({...formData, [e.target.name]: e.target.value});
-  };
+  useEffect(() => {
+    // Fetch real price
+    fetch('/api/product').then(res => res.json()).then(data => setProduct(data));
+  }, []);
+
+  const handleChange = (e) => setFormData({...formData, [e.target.name]: e.target.value});
 
   const handlePayment = async (e) => {
     e.preventDefault();
+    if(!product) return;
     setIsProcessing(true);
+
+    const totalAmount = product.price * initialQty;
 
     // 1. Create Order
     const res = await fetch("/api/create-order", {
       method: "POST",
       body: JSON.stringify({ 
-        amount: 24.99 * 86, 
+        amount: totalAmount, 
         customer: formData 
       }),
     });
@@ -41,14 +44,13 @@ export default function CheckoutPage() {
 
     // 2. Open Razorpay
     const options = {
-      key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID, 
+      key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || data.keyId,
       amount: data.amount,
       currency: data.currency,
-      name: "SnapNShop",
-      description: "Mini Chopper Purchase",
+      name: "SnapNShop India",
+      description: `${product.name} (x${initialQty})`,
       order_id: data.id,
       handler: async function (response) {
-        // 3. Verify Payment
         const verifyRes = await fetch("/api/verify-payment", {
           method: "POST",
           body: JSON.stringify({
@@ -57,160 +59,92 @@ export default function CheckoutPage() {
             razorpay_signature: response.razorpay_signature,
           }),
         });
-        
         const verifyData = await verifyRes.json();
-          if (verifyData.valid) {
-              router.push(`/success?orderId=${response.razorpay_order_id}`);
-          } else {
-          alert("Payment Verification Failed");
-          setIsProcessing(false);
-        }
+        if (verifyData.valid) router.push(`/success?orderId=${response.razorpay_order_id}`);
+        else alert("Payment Verification Failed");
       },
       prefill: {
         name: formData.name,
         email: formData.email,
-        contact: formData.phone // Prefill phone for Razorpay
+        contact: formData.phone
       },
-      theme: {
-        color: "#F4A49E",
-      },
+      theme: { color: "#000000" },
     };
 
     const rzp1 = new window.Razorpay(options);
     rzp1.open();
     rzp1.on('payment.failed', function (response){
-        alert(response.error.description);
+        alert("Payment Failed");
         setIsProcessing(false);
     });
   };
 
+  if (!product) return <div className="p-10 text-center">Loading Secure Checkout...</div>;
+
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-800 font-sans">
+    <div className="min-h-screen bg-gray-50 text-gray-800 font-sans pb-10">
       <Script src="https://checkout.razorpay.com/v1/checkout.js" />
       
-      {/* Header */}
-      <div className="bg-white border-b py-4">
-        <div className="max-w-6xl mx-auto px-4 flex items-center justify-between">
-            <Link href="/" className="font-extrabold text-2xl tracking-tighter text-brand-dark flex items-center gap-2">
-                <ArrowLeft size={20} className="text-gray-400" /> snapnshop
+      <div className="bg-white border-b py-4 mb-8">
+        <div className="max-w-4xl mx-auto px-4 flex items-center justify-between">
+            <Link href="/" className="font-bold flex items-center gap-2 text-gray-600">
+                <ArrowLeft size={18} /> Back
             </Link>
-            <div className="text-sm text-gray-500 flex items-center gap-2">
-                <Lock size={14} /> Secure Checkout
+            <div className="text-sm font-bold text-green-700 flex items-center gap-2">
+                <Lock size={14} /> 100% Secure Payment
             </div>
         </div>
       </div>
 
-      <main className="max-w-6xl mx-auto px-4 py-8 grid grid-cols-1 md:grid-cols-12 gap-8">
+      <main className="max-w-4xl mx-auto px-4 grid grid-cols-1 md:grid-cols-12 gap-8">
         
         {/* Left: Form */}
         <div className="md:col-span-7 space-y-6">
             <form onSubmit={handlePayment} className="space-y-6">
-                
-                {/* Contact Info */}
-                <div className="bg-white p-6 rounded-xl border shadow-sm space-y-4">
-                    <h2 className="text-xl font-bold mb-2">Contact Information</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <input 
-                        name="email" onChange={handleChange} required
-                        type="email" placeholder="Email Address" 
-                        className="w-full border p-3 rounded-lg bg-gray-50 outline-brand-pink" 
-                        />
-                        <input 
-                        name="phone" onChange={handleChange} required
-                        type="tel" placeholder="Phone Number" 
-                        className="w-full border p-3 rounded-lg bg-gray-50 outline-brand-pink" 
-                        />
-                    </div>
-                </div>
-
-                {/* Shipping Address */}
-                <div className="bg-white p-6 rounded-xl border shadow-sm space-y-4">
-                    <h2 className="text-xl font-bold mb-2">Shipping Address</h2>
-                    <input 
-                      name="name" onChange={handleChange} required
-                      type="text" placeholder="Full Name" 
-                      className="border p-3 rounded-lg bg-gray-50 w-full outline-brand-pink" 
-                    />
-                    <input 
-                      name="address" onChange={handleChange} required
-                      type="text" placeholder="Address (House No, Street)" 
-                      className="w-full border p-3 rounded-lg bg-gray-50 outline-brand-pink" 
-                    />
+                <div className="bg-white p-6 rounded-xl shadow-sm space-y-4">
+                    <h2 className="text-lg font-bold mb-2">Shipping Details</h2>
+                    <input name="name" onChange={handleChange} required type="text" placeholder="Full Name" className="w-full border p-3 rounded-lg outline-black" />
                     <div className="grid grid-cols-2 gap-4">
-                        <input 
-                          name="city" onChange={handleChange} required
-                          type="text" placeholder="City" 
-                          className="border p-3 rounded-lg bg-gray-50 w-full outline-brand-pink" 
-                        />
-                        <input 
-                          name="state" onChange={handleChange} required
-                          type="text" placeholder="State" 
-                          className="border p-3 rounded-lg bg-gray-50 w-full outline-brand-pink" 
-                        />
+                        <input name="email" onChange={handleChange} required type="email" placeholder="Email" className="w-full border p-3 rounded-lg outline-black" />
+                        <input name="phone" onChange={handleChange} required type="tel" placeholder="Phone Number" className="w-full border p-3 rounded-lg outline-black" />
                     </div>
-                    <input 
-                        name="zip" onChange={handleChange} required
-                        type="text" placeholder="ZIP / Pincode" 
-                        className="border p-3 rounded-lg bg-gray-50 w-full outline-brand-pink" 
-                    />
-                </div>
-
-                {/* Shipping Disclaimer Block */}
-                <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex gap-3">
-                    <Truck className="text-blue-500 shrink-0" size={24} />
-                    <div className="text-sm text-blue-900">
-                        <p className="font-bold">Shipping Method: Direct Warehouse</p>
-                        <p className="opacity-80">
-                            Orders are processed manually within <strong>2–5 business days</strong>. 
-                            Estimated delivery is <strong>7–14 days</strong> after processing. 
-                            You will receive an email with tracking details once shipped.
-                        </p>
+                    <input name="address" onChange={handleChange} required type="text" placeholder="Address" className="w-full border p-3 rounded-lg outline-black" />
+                    <div className="grid grid-cols-3 gap-4">
+                        <input name="city" onChange={handleChange} required type="text" placeholder="City" className="w-full border p-3 rounded-lg outline-black" />
+                        <input name="state" onChange={handleChange} required type="text" placeholder="State" className="w-full border p-3 rounded-lg outline-black" />
+                        <input name="zip" onChange={handleChange} required type="text" placeholder="Pincode" className="w-full border p-3 rounded-lg outline-black" />
                     </div>
                 </div>
 
-                <button 
-                    disabled={isProcessing}
-                    type="submit" 
-                    className="w-full bg-brand-dark text-white font-bold text-xl py-4 rounded-xl hover:bg-brand-pink transition-all shadow-lg shadow-brand-pink/40 disabled:opacity-70 flex justify-center items-center gap-2"
-                >
-                    {isProcessing ? "Processing..." : "Pay Now (Razorpay)"}
+                <button disabled={isProcessing} type="submit" className="w-full bg-brand-dark text-white font-bold text-xl py-4 rounded-xl hover:bg-black transition-all shadow-lg disabled:opacity-70">
+                    {isProcessing ? "Processing..." : `Pay ₹${(product.price * initialQty).toLocaleString('en-IN')}`}
                 </button>
             </form>
         </div>
 
         {/* Right: Summary */}
         <div className="md:col-span-5">
-            <div className="bg-white p-6 rounded-xl border shadow-sm sticky top-24">
-                <h3 className="font-bold text-gray-500 text-sm uppercase tracking-wider mb-4">Order Summary</h3>
+            <div className="bg-white p-6 rounded-xl shadow-sm sticky top-24">
+                <h3 className="font-bold text-gray-500 text-xs uppercase tracking-wider mb-4">Order Summary</h3>
                 <div className="flex gap-4 border-b pb-4 mb-4">
-                    <div className="relative w-16 h-16 bg-gray-100 rounded-lg overflow-hidden border">
-                         <Image src="/chopper.webp" alt="Chopper" fill className="object-cover" />
-                    </div>
                     <div className="flex-1">
-                        <h4 className="font-bold text-gray-800">Wireless Mini Chopper</h4>
-                        <p className="text-sm text-gray-500">Pink / 250ml</p>
+                        <h4 className="font-bold text-gray-900">{product.name}</h4>
+                        <p className="text-sm text-gray-500">Quantity: {initialQty}</p>
                     </div>
-                    <div className="font-bold">$24.99</div>
+                    <div className="font-bold">₹{product.price.toLocaleString('en-IN')}</div>
                 </div>
                 
                 <div className="space-y-2 py-4 border-b mb-4 text-sm text-gray-600">
-                     <div className="flex justify-between">
-                        <span>Subtotal</span>
-                        <span>$24.99</span>
-                    </div>
-                    <div className="flex justify-between text-green-600 font-bold">
-                        <span>Shipping (Standard)</span>
-                        <span>Free</span>
-                    </div>
+                    <div className="flex justify-between"><span>Subtotal</span><span>₹{(product.price * initialQty).toLocaleString('en-IN')}</span></div>
+                    <div className="flex justify-between text-green-600 font-bold"><span>Shipping</span><span>Free</span></div>
                 </div>
 
                 <div className="flex justify-between items-center text-xl font-extrabold text-gray-900">
                     <span>Total</span>
-                    <span>$24.99</span>
+                    <span>₹{(product.price * initialQty).toLocaleString('en-IN')}</span>
                 </div>
             </div>
         </div>
-
       </main>
     </div>
   );

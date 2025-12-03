@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import dbConnect from '../../lib/mongodb';
 import Order from '../../models/order';
-import { sendEmail, EMAIL_TEMPLATES } from '../../lib/notifications'; // Import the mailer
+import { sendEmail, EMAIL_TEMPLATES } from '../../lib/notifications';
 
 export async function POST(req) {
   await dbConnect();
@@ -17,33 +17,37 @@ export async function POST(req) {
     .digest("hex");
 
   if (expectedSignature === razorpay_signature) {
-    // 1. Payment Success: Update DB
-    // We also set the initial 'auditLog' entry here for the payment
-    const updatedOrder = await Order.findOneAndUpdate(
-      { orderId: razorpay_order_id },
-      { 
-        status: 'Paid', 
-        supplierStatus: 'Pending', // Ready for admin to process
-        paymentId: razorpay_payment_id,
-        $push: { 
-          auditLog: { 
-            action: 'PAYMENT_RECEIVED', 
-            note: `Razorpay ID: ${razorpay_payment_id}`, 
-            timestamp: new Date() 
-          } 
-        }
-      },
-      { new: true } // Return the updated document
-    );
-    
-    // 2. Trigger "Order Confirmed" Email NOW (only on success)
-    if (updatedOrder) {
-        await sendEmail({
-            to: updatedOrder.customer.email,
-            subject: `Order Confirmed #${updatedOrder.orderId}`,
-            html: EMAIL_TEMPLATES.ORDER_CONFIRMATION(updatedOrder)
-        });
+    // Fetch order to check current status
+    const order = await Order.findOne({ orderId: razorpay_order_id });
+
+    if (!order) {
+       return NextResponse.json({ message: "Order not found", valid: false }, { status: 404 });
     }
+
+    // IDEMPOTENCY CHECK: If Webhook already marked it as Paid, skip update & email
+    if (order.status === 'Paid') {
+        console.log(`[Verify] Order ${razorpay_order_id} already processed by Webhook.`);
+        return NextResponse.json({ message: "Already Processed", valid: true });
+    }
+
+    // If not paid yet, update it manually
+    order.status = 'Paid';
+    order.supplierStatus = 'Pending';
+    order.paymentId = razorpay_payment_id;
+    order.auditLog.push({ 
+        action: 'PAYMENT_VERIFIED_CLIENT', 
+        note: `Verified via Client Return URL`, 
+        timestamp: new Date() 
+    });
+    
+    await order.save();
+    
+    // Trigger "Order Confirmed" Email
+    await sendEmail({
+        to: order.customer.email,
+        subject: `Order Confirmed #${order.orderId}`,
+        html: EMAIL_TEMPLATES.ORDER_CONFIRMATION(order)
+    });
 
     return NextResponse.json({ message: "Success", valid: true });
   } else {

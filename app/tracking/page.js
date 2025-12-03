@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Search, Package, CheckCircle, Truck, MapPin } from "lucide-react";
+import { Search, Package, CheckCircle, Truck } from "lucide-react";
 import Link from "next/link";
 
 export default function TrackingPage() {
@@ -36,7 +36,6 @@ export default function TrackingPage() {
 
   return (
     <div className="min-h-screen bg-white font-sans text-gray-800">
-       {/* Simple Nav */}
        <div className="border-b p-4">
           <div className="max-w-4xl mx-auto font-bold text-2xl text-brand-dark">
             <Link href="/">snapnshop</Link>
@@ -67,10 +66,6 @@ export default function TrackingPage() {
             </div>
           )}
 
-         // ... existing imports ...
-// Inside the component...
-// Replace the result rendering block:
-
           {result && (
              <div className="bg-white border rounded-2xl shadow-lg overflow-hidden">
                 <div className="bg-brand-bg p-6 border-b border-brand-pink/20">
@@ -86,12 +81,10 @@ export default function TrackingPage() {
                     {/* Status Steps */}
                     <div className="relative flex justify-between mb-8">
                         <div className="absolute top-1/2 left-0 w-full h-1 bg-gray-100 -z-10"></div>
-                        {/* Mapped statuses: Pending -> Processing -> Shipped -> Delivered */}
                         {['Pending', 'Processing', 'Shipped', 'Delivered'].map((step, i) => {
                              const statuses = ['Pending', 'Processing', 'Shipped', 'Delivered'];
-                             // Map API status to index
                              let apiStatusIdx = statuses.indexOf(result.status);
-                             if(result.status === 'Paid') apiStatusIdx = 0; // Treat Paid as Pending for visual simplicity
+                             if(result.status === 'Paid') apiStatusIdx = 0; 
                              
                              const stepIdx = statuses.indexOf(step);
                              const isActive = stepIdx <= apiStatusIdx;
@@ -107,7 +100,6 @@ export default function TrackingPage() {
                         })}
                     </div>
 
-                    {/* NEW: Tracking Info Block */}
                     {result.tracking?.number && (
                         <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl mb-6 flex justify-between items-center">
                             <div>
@@ -120,7 +112,6 @@ export default function TrackingPage() {
                     )}
 
                     <div className="bg-gray-50 p-4 rounded-xl space-y-2 text-sm">
-                        {/* ... Existing details ... */}
                          <div className="flex gap-3">
                             <Package className="text-gray-400" size={18}/>
                             <div>

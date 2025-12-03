@@ -3,7 +3,8 @@ import Razorpay from 'razorpay';
 import dbConnect from '../../lib/mongodb';
 import Order from '../../models/order';
 import shortid from 'shortid';
-import { sendEmail, EMAIL_TEMPLATES } from '../../lib/notifications'; // Import added
+// We don't send the email here anymore, we wait for Payment Success (Verify or Webhook)
+// to prevent "Order Confirmed" emails for unpaid abandoned carts.
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
@@ -13,44 +14,44 @@ const razorpay = new Razorpay({
 export async function POST(req) {
   await dbConnect();
   
-  const { amount, customer } = await req.json();
-
-  // Razorpay Options
-  const options = {
-    amount: amount * 100, 
-    currency: "INR",
-    receipt: shortid.generate(),
-  };
-
   try {
+    const { amount, customer } = await req.json();
+    const currency = process.env.DEFAULT_CURRENCY || 'INR';
+
+    // Razorpay Options
+    const options = {
+      amount: Math.round(amount * 100), // Ensure integer (paise)
+      currency: currency,
+      receipt: shortid.generate(),
+    };
+
     const response = await razorpay.orders.create(options);
     
-    // Create DB Record
+    // Create DB Record (Status: Pending Payment)
     const newOrder = new Order({
       orderId: response.id,
       customer: customer,
       amount: amount,
-      status: 'Pending',
+      currency: currency,
+      status: 'Pending', // Pending Payment
       supplierStatus: 'Pending',
-      auditLog: [{ action: 'ORDER_CREATED', note: 'Customer initiated checkout', timestamp: new Date() }]
+      auditLog: [{ 
+        action: 'ORDER_INITIATED', 
+        note: 'Customer reached payment gateway', 
+        timestamp: new Date() 
+      }]
     });
     
     await newOrder.save();
-
-    // --- NEW: Send Confirmation Email (Async - don't await to speed up UI) ---
-    sendEmail({
-      to: customer.email,
-      subject: `Order Confirmed #${newOrder.orderId}`,
-      html: EMAIL_TEMPLATES.ORDER_CONFIRMATION(newOrder)
-    });
 
     return NextResponse.json({
       id: response.id,
       currency: response.currency,
       amount: response.amount,
+      keyId: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID // Send pub key to client
     });
   } catch (error) {
-    console.error(error);
+    console.error("Create Order Error:", error);
     return NextResponse.json({ error: 'Error creating order' }, { status: 500 });
   }
 }
