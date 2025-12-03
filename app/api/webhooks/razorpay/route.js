@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
-import dbConnect from '../../../../lib/mongodb';
-import Order from '../../../../models/order';
-import { sendEmail, EMAIL_TEMPLATES } from '../../../../lib/notifications';
+// CHANGED: Use ../../../ instead of ../../../../
+import dbConnect from '../../../lib/mongodb';
+import Order from '../../../models/order';
+import { sendEmail, EMAIL_TEMPLATES } from '../../../lib/notifications';
 
 export async function POST(req) {
   try {
@@ -51,8 +52,7 @@ export async function POST(req) {
 
         await order.save();
 
-        // Send confirmation email (idempotent: only if not already sent logic can be added, 
-        // but here we rely on the status check above)
+        // Send confirmation email
         await sendEmail({
           to: order.customer.email,
           subject: `Order Confirmed #${order.orderId}`,
