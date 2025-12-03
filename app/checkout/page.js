@@ -1,9 +1,9 @@
 "use client";
 import { useState } from "react";
-import { ShieldCheck, Lock, CreditCard, Truck, ArrowLeft } from "lucide-react";
+import { ShieldCheck, Lock, ArrowLeft, Info, Truck } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import Script from "next/script"; // Required for Razorpay
+import Script from "next/script";
 import { useRouter } from "next/navigation";
 
 export default function CheckoutPage() {
@@ -31,7 +31,7 @@ export default function CheckoutPage() {
     const res = await fetch("/api/create-order", {
       method: "POST",
       body: JSON.stringify({ 
-        amount: 24.99 * 86, // Approx conversion to INR (Razorpay works best with INR) or use USD if enabled
+        amount: 24.99 * 86, 
         customer: formData 
       }),
     });
@@ -58,7 +58,6 @@ export default function CheckoutPage() {
         
         const verifyData = await verifyRes.json();
           if (verifyData.valid) {
-              // Pass the actual Razorpay Order ID to the success page
               router.push(`/success?orderId=${response.razorpay_order_id}`);
           } else {
           alert("Payment Verification Failed");
@@ -110,7 +109,7 @@ export default function CheckoutPage() {
                     <input 
                       name="email" onChange={handleChange} required
                       type="email" placeholder="Email Address" 
-                      className="w-full border p-3 rounded-lg bg-gray-50" 
+                      className="w-full border p-3 rounded-lg bg-gray-50 outline-brand-pink" 
                     />
                 </div>
 
@@ -120,24 +119,37 @@ export default function CheckoutPage() {
                     <input 
                       name="name" onChange={handleChange} required
                       type="text" placeholder="Full Name" 
-                      className="border p-3 rounded-lg bg-gray-50 w-full" 
+                      className="border p-3 rounded-lg bg-gray-50 w-full outline-brand-pink" 
                     />
                     <input 
                       name="address" onChange={handleChange} required
                       type="text" placeholder="Address" 
-                      className="w-full border p-3 rounded-lg bg-gray-50" 
+                      className="w-full border p-3 rounded-lg bg-gray-50 outline-brand-pink" 
                     />
                     <div className="grid grid-cols-2 gap-4">
                         <input 
                           name="city" onChange={handleChange} required
                           type="text" placeholder="City" 
-                          className="border p-3 rounded-lg bg-gray-50 w-full" 
+                          className="border p-3 rounded-lg bg-gray-50 w-full outline-brand-pink" 
                         />
                         <input 
                           name="zip" onChange={handleChange} required
                           type="text" placeholder="ZIP / Pincode" 
-                          className="border p-3 rounded-lg bg-gray-50 w-full" 
+                          className="border p-3 rounded-lg bg-gray-50 w-full outline-brand-pink" 
                         />
+                    </div>
+                </div>
+
+                {/* Shipping Disclaimer Block */}
+                <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex gap-3">
+                    <Truck className="text-blue-500 shrink-0" size={24} />
+                    <div className="text-sm text-blue-900">
+                        <p className="font-bold">Shipping Method: Direct Warehouse</p>
+                        <p className="opacity-80">
+                            Orders are processed manually within <strong>2–5 business days</strong>. 
+                            Estimated delivery is <strong>7–14 days</strong> after processing. 
+                            You will receive an email with tracking details once shipped.
+                        </p>
                     </div>
                 </div>
 
@@ -165,6 +177,18 @@ export default function CheckoutPage() {
                     </div>
                     <div className="font-bold">$24.99</div>
                 </div>
+                
+                <div className="space-y-2 py-4 border-b mb-4 text-sm text-gray-600">
+                     <div className="flex justify-between">
+                        <span>Subtotal</span>
+                        <span>$24.99</span>
+                    </div>
+                    <div className="flex justify-between text-green-600 font-bold">
+                        <span>Shipping (Standard)</span>
+                        <span>Free</span>
+                    </div>
+                </div>
+
                 <div className="flex justify-between items-center text-xl font-extrabold text-gray-900">
                     <span>Total</span>
                     <span>$24.99</span>

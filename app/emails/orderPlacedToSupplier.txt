@@ -1,0 +1,28 @@
+Subject: New Purchase Order - PO #{orderId}
+
+Dear Supplier,
+
+Please fulfill the following order immediately.
+Find the details attached in the CSV, or see below:
+
+--- ORDER DETAILS ---
+PO Number: {orderId}
+Item: Wireless Mini Chopper (Pink, 250ml)
+Quantity: {qty}
+SKU: SNS-MINI-PK01
+
+--- SHIPPING ADDRESS ---
+Name: {customerName}
+Phone: {customerPhone}
+Address: {customerAddress}
+City: {customerCity}
+Pin Code: {customerZip}
+State: {customerState}
+
+--- NOTES ---
+{supplierNotes}
+
+Please confirm receipt of this order and provide the Tracking Number (AWB) as soon as it ships.
+
+Thank you,
+SnapNShop Operations Team

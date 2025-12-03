@@ -3,6 +3,7 @@ import Razorpay from 'razorpay';
 import dbConnect from '../../lib/mongodb';
 import Order from '../../models/order';
 import shortid from 'shortid';
+import { sendEmail, EMAIL_TEMPLATES } from '../../lib/notifications'; // Import added
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
@@ -14,8 +15,9 @@ export async function POST(req) {
   
   const { amount, customer } = await req.json();
 
+  // Razorpay Options
   const options = {
-    amount: amount * 100, // Razorpay expects amount in paise (multiply by 100)
+    amount: amount * 100, 
     currency: "INR",
     receipt: shortid.generate(),
   };
@@ -23,15 +25,24 @@ export async function POST(req) {
   try {
     const response = await razorpay.orders.create(options);
     
-    // Save preliminary order to DB
+    // Create DB Record
     const newOrder = new Order({
       orderId: response.id,
       customer: customer,
       amount: amount,
-      status: 'Pending'
+      status: 'Pending',
+      supplierStatus: 'Pending',
+      auditLog: [{ action: 'ORDER_CREATED', note: 'Customer initiated checkout', timestamp: new Date() }]
     });
     
     await newOrder.save();
+
+    // --- NEW: Send Confirmation Email (Async - don't await to speed up UI) ---
+    sendEmail({
+      to: customer.email,
+      subject: `Order Confirmed #${newOrder.orderId}`,
+      html: EMAIL_TEMPLATES.ORDER_CONFIRMATION(newOrder)
+    });
 
     return NextResponse.json({
       id: response.id,
