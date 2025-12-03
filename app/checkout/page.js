@@ -1,11 +1,12 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react"; // Added Suspense import
 import { Lock, ArrowLeft, Truck } from "lucide-react";
 import Link from "next/link";
 import Script from "next/script";
 import { useRouter, useSearchParams } from "next/navigation";
 
-export default function CheckoutPage() {
+// 1. Move all the logic into this inner component
+function CheckoutContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialQty = parseInt(searchParams.get('qty') || '1');
@@ -82,7 +83,7 @@ export default function CheckoutPage() {
   if (!product) return <div className="p-10 text-center">Loading Secure Checkout...</div>;
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-800 font-sans pb-10">
+    <>
       <Script src="https://checkout.razorpay.com/v1/checkout.js" />
       
       <div className="bg-white border-b py-4 mb-8">
@@ -146,6 +147,17 @@ export default function CheckoutPage() {
             </div>
         </div>
       </main>
+    </>
+  );
+}
+
+// 2. Export the main page wrapped in Suspense
+export default function CheckoutPage() {
+  return (
+    <div className="min-h-screen bg-gray-50 text-gray-800 font-sans pb-10">
+      <Suspense fallback={<div className="p-10 text-center">Loading Checkout...</div>}>
+        <CheckoutContent />
+      </Suspense>
     </div>
   );
 }
