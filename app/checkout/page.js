@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { ShieldCheck, Lock, ArrowLeft, Info, Truck } from "lucide-react";
+import { ShieldCheck, Lock, ArrowLeft, Truck } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import Script from "next/script";
@@ -14,8 +14,10 @@ export default function CheckoutPage() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+    phone: "", // Added
     address: "",
     city: "",
+    state: "", // Added
     zip: ""
   });
 
@@ -67,6 +69,7 @@ export default function CheckoutPage() {
       prefill: {
         name: formData.name,
         email: formData.email,
+        contact: formData.phone // Prefill phone for Razorpay
       },
       theme: {
         color: "#F4A49E",
@@ -104,13 +107,20 @@ export default function CheckoutPage() {
             <form onSubmit={handlePayment} className="space-y-6">
                 
                 {/* Contact Info */}
-                <div className="bg-white p-6 rounded-xl border shadow-sm">
-                    <h2 className="text-xl font-bold mb-4">Contact Information</h2>
-                    <input 
-                      name="email" onChange={handleChange} required
-                      type="email" placeholder="Email Address" 
-                      className="w-full border p-3 rounded-lg bg-gray-50 outline-brand-pink" 
-                    />
+                <div className="bg-white p-6 rounded-xl border shadow-sm space-y-4">
+                    <h2 className="text-xl font-bold mb-2">Contact Information</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <input 
+                        name="email" onChange={handleChange} required
+                        type="email" placeholder="Email Address" 
+                        className="w-full border p-3 rounded-lg bg-gray-50 outline-brand-pink" 
+                        />
+                        <input 
+                        name="phone" onChange={handleChange} required
+                        type="tel" placeholder="Phone Number" 
+                        className="w-full border p-3 rounded-lg bg-gray-50 outline-brand-pink" 
+                        />
+                    </div>
                 </div>
 
                 {/* Shipping Address */}
@@ -123,7 +133,7 @@ export default function CheckoutPage() {
                     />
                     <input 
                       name="address" onChange={handleChange} required
-                      type="text" placeholder="Address" 
+                      type="text" placeholder="Address (House No, Street)" 
                       className="w-full border p-3 rounded-lg bg-gray-50 outline-brand-pink" 
                     />
                     <div className="grid grid-cols-2 gap-4">
@@ -133,11 +143,16 @@ export default function CheckoutPage() {
                           className="border p-3 rounded-lg bg-gray-50 w-full outline-brand-pink" 
                         />
                         <input 
-                          name="zip" onChange={handleChange} required
-                          type="text" placeholder="ZIP / Pincode" 
+                          name="state" onChange={handleChange} required
+                          type="text" placeholder="State" 
                           className="border p-3 rounded-lg bg-gray-50 w-full outline-brand-pink" 
                         />
                     </div>
+                    <input 
+                        name="zip" onChange={handleChange} required
+                        type="text" placeholder="ZIP / Pincode" 
+                        className="border p-3 rounded-lg bg-gray-50 w-full outline-brand-pink" 
+                    />
                 </div>
 
                 {/* Shipping Disclaimer Block */}
