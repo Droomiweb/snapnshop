@@ -79,7 +79,7 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* --- MOBILE DROPDOWN --- */}
+      {/* --- MOBILE DROPDOWNN --- */}
       {isOpen && (
         <div className="md:hidden bg-white border-t p-4 shadow-xl absolute w-full max-h-[80vh] overflow-y-auto">
             <div className="flex flex-col space-y-4">
