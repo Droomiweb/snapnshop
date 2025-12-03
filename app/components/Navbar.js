@@ -33,7 +33,6 @@ export default function Navbar() {
           <div className="hidden md:flex items-center gap-8 text-sm font-bold text-gray-600">
             <Link href="/" className="hover:text-brand-dark transition-colors">Home</Link>
             <Link href="/tracking" className="hover:text-brand-dark transition-colors">Track Order</Link>
-            <Link href="/admin" className="hover:text-brand-dark transition-colors text-gray-400">Admin</Link>
             
             <div className="relative group cursor-pointer">
                <ShoppingCart className="w-6 h-6 text-gray-800" />
