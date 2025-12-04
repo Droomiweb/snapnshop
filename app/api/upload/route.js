@@ -10,9 +10,9 @@ export async function POST(request) {
   }
 
   // Upload to Vercel Blob
-  // access: 'public' means the image can be viewed by anyone on your site
   const blob = await put(filename, request.body, {
     access: 'public',
+    addRandomSuffix: true, // <--- This fixes the 500 Error by ensuring unique filenames
   });
 
   return NextResponse.json(blob);

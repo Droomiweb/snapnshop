@@ -65,10 +65,28 @@ export async function POST(req) {
 
     if (!storeId) return NextResponse.json({ error: "Store ID required" }, { status: 400 });
 
+    // --- FIX START ---
+    // 1. Remove immutable fields to prevent "Mod on _id not allowed" errors
+    delete data._id;
+    delete data.__v;
+    delete data.createdAt;
+    delete data.updatedAt;
+
+    // 2. Ensure SKU exists (Critical for upserting new products via Admin Panel)
+    if (!data.sku) {
+        const existing = await Product.findOne({ storeId });
+        if (existing) {
+            data.sku = existing.sku;
+        } else {
+            data.sku = `SNS-${storeId.toUpperCase()}-001`;
+        }
+    }
+    // --- FIX END ---
+
     // Update or Create
     const product = await Product.findOneAndUpdate(
       { storeId }, 
-      data, 
+      { $set: data }, // Explicitly use $set
       { new: true, upsert: true }
     );
 
