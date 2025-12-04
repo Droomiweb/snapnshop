@@ -1,56 +1,43 @@
 import mongoose from 'mongoose';
 
 const OrderSchema = new mongoose.Schema({
-  // --- Core Order Info ---
+  storeId: { type: String, required: true, index: true }, // The website this order came from
   orderId: { type: String, required: true, unique: true },
   customer: {
     name: String,
     email: String,
-    phone: String, // Added phone for IndiaMART/Couriers
+    phone: String,
     address: String,
     city: String,
     zip: String,
-    state: String,
-    country: { type: String, default: 'India' }
+    state: String
   },
-  items: [{ // specific items array for CSV export clarity
+  items: [{
     sku: String,
     name: String,
     qty: Number,
     price: Number
   }],
   amount: Number,
-  currency: { type: String, default: 'INR' },
-  
-  // --- Payment & Status ---
-  status: { type: String, default: 'Pending' }, // Customer facing: Pending, Paid, Shipped, Delivered, Cancelled
+  status: { type: String, default: 'Pending' },
   paymentId: String,
   
-  // --- Supplier / Fulfillment Fields ---
-  supplierStatus: { 
-    type: String, 
-    default: 'Pending', 
-    enum: ['Pending', 'Processing', 'Placed', 'Shipped', 'Failed'] 
-  },
-  supplierOrderId: String, // The ID given by the IndiaMART supplier
+  // Fulfillment
+  supplierStatus: { type: String, default: 'Pending' },
+  supplierOrderId: String,
   supplierName: String,
-  supplierNotes: String, // Internal notes (e.g., "Spoke to Raj, shipping delayed")
-  
-  // --- Shipping & Dates ---
+  supplierNotes: String,
   courier: String,
   trackingNumber: String,
   trackingUrl: String,
-  expectedDeliveryDate: Date,
   
-  // --- Audit Trail ---
   auditLog: [{
-    action: String, // e.g., "Marked Placed", "Exported CSV"
+    action: String,
     timestamp: { type: Date, default: Date.now },
     note: String
   }],
 
   createdAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now }
 });
 
 export default mongoose.models.Order || mongoose.model('Order', OrderSchema);

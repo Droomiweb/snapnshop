@@ -3,8 +3,6 @@ import Razorpay from 'razorpay';
 import dbConnect from '../../lib/mongodb';
 import Order from '../../models/order';
 import shortid from 'shortid';
-// We don't send the email here anymore, we wait for Payment Success (Verify or Webhook)
-// to prevent "Order Confirmed" emails for unpaid abandoned carts.
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
@@ -15,43 +13,38 @@ export async function POST(req) {
   await dbConnect();
   
   try {
-    const { amount, customer } = await req.json();
-    const currency = process.env.DEFAULT_CURRENCY || 'INR';
+    const { amount, customer, storeId } = await req.json(); // Now accepting storeId
+    const currency = 'INR';
 
-    // Razorpay Options
     const options = {
-      amount: Math.round(amount * 100), // Ensure integer (paise)
+      amount: Math.round(amount * 100),
       currency: currency,
       receipt: shortid.generate(),
+      notes: { storeId: storeId } // Tagging transaction in Razorpay Dashboard
     };
 
     const response = await razorpay.orders.create(options);
     
-    // Create DB Record (Status: Pending Payment)
     const newOrder = new Order({
+      storeId: storeId || 'unknown', // Critical for multi-store
       orderId: response.id,
       customer: customer,
       amount: amount,
       currency: currency,
-      status: 'Pending', // Pending Payment
+      status: 'Pending',
       supplierStatus: 'Pending',
       auditLog: [{ 
         action: 'ORDER_INITIATED', 
-        note: 'Customer reached payment gateway', 
+        note: `Started checkout on ${storeId}`, 
         timestamp: new Date() 
       }]
     });
     
     await newOrder.save();
 
-    return NextResponse.json({
-      id: response.id,
-      currency: response.currency,
-      amount: response.amount,
-      keyId: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID // Send pub key to client
-    });
+    return NextResponse.json(response);
   } catch (error) {
-    console.error("Create Order Error:", error);
+    console.error("Order Create Error:", error);
     return NextResponse.json({ error: 'Error creating order' }, { status: 500 });
   }
 }

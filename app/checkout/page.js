@@ -1,163 +1,107 @@
 "use client";
-import { useState, useEffect, Suspense } from "react"; // Added Suspense import
-import { Lock, ArrowLeft, Truck } from "lucide-react";
-import Link from "next/link";
+import { useState, useEffect, Suspense } from "react";
 import Script from "next/script";
 import { useRouter, useSearchParams } from "next/navigation";
+import { ShieldCheck, CreditCard, Smartphone } from "lucide-react";
 
-// 1. Move all the logic into this inner component
-function CheckoutContent() {
+function CheckoutForm() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const initialQty = parseInt(searchParams.get('qty') || '1');
-  
   const [isProcessing, setIsProcessing] = useState(false);
   const [product, setProduct] = useState(null);
-
-  // Form State
-  const [formData, setFormData] = useState({
-    name: "", email: "", phone: "", address: "", city: "", state: "", zip: ""
-  });
+  const storeId = process.env.NEXT_PUBLIC_STORE_ID || 'chopper';
+  
+  // User Form Data
+  const [form, setForm] = useState({ name: '', email: '', phone: '', address: '', city: '', zip: '' });
 
   useEffect(() => {
-    // Fetch real price
-    fetch('/api/product').then(res => res.json()).then(data => setProduct(data));
+    fetch(`/api/product?storeId=${storeId}`).then(res => res.json()).then(setProduct);
   }, []);
 
-  const handleChange = (e) => setFormData({...formData, [e.target.name]: e.target.value});
-
-  const handlePayment = async (e) => {
+  const handlePay = async (e) => {
     e.preventDefault();
-    if(!product) return;
     setIsProcessing(true);
-
-    const totalAmount = product.price * initialQty;
-
-    // 1. Create Order
+    
+    // 1. Create Order in DB
     const res = await fetch("/api/create-order", {
       method: "POST",
-      body: JSON.stringify({ 
-        amount: totalAmount, 
-        customer: formData 
-      }),
+      body: JSON.stringify({ amount: product.price, customer: form, storeId }), // Sending StoreId
     });
-    const data = await res.json();
+    const orderData = await res.json();
 
     // 2. Open Razorpay
     const options = {
-      key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || data.keyId,
-      amount: data.amount,
-      currency: data.currency,
-      name: "SnapNShop India",
-      description: `${product.name} (x${initialQty})`,
-      order_id: data.id,
-      handler: async function (response) {
-        const verifyRes = await fetch("/api/verify-payment", {
-          method: "POST",
-          body: JSON.stringify({
-            razorpay_payment_id: response.razorpay_payment_id,
-            razorpay_order_id: response.razorpay_order_id,
-            razorpay_signature: response.razorpay_signature,
-          }),
-        });
-        const verifyData = await verifyRes.json();
-        if (verifyData.valid) router.push(`/success?orderId=${response.razorpay_order_id}`);
-        else alert("Payment Verification Failed");
+      key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+      amount: orderData.amount,
+      currency: "INR",
+      name: "SnapNShop Secure",
+      description: `Order #${orderData.id}`,
+      order_id: orderData.id,
+      handler: async (response) => {
+         // Verify Payment
+         const verify = await fetch("/api/verify-payment", {
+             method: 'POST',
+             body: JSON.stringify(response)
+         });
+         const verifyData = await verify.json();
+         if(verifyData.valid) router.push(`/success?orderId=${orderData.id}`);
       },
-      prefill: {
-        name: formData.name,
-        email: formData.email,
-        contact: formData.phone
-      },
-      theme: { color: "#000000" },
+      prefill: { name: form.name, email: form.email, contact: form.phone },
+      theme: { color: product.theme?.primaryColor || "#000" }
     };
 
-    const rzp1 = new window.Razorpay(options);
-    rzp1.open();
-    rzp1.on('payment.failed', function (response){
-        alert("Payment Failed");
-        setIsProcessing(false);
-    });
+    const rzp = new window.Razorpay(options);
+    rzp.open();
+    rzp.on('payment.failed', () => setIsProcessing(false));
   };
 
-  if (!product) return <div className="p-10 text-center">Loading Secure Checkout...</div>;
+  if(!product) return <div>Loading Secure Gateway...</div>;
 
   return (
-    <>
-      <Script src="https://checkout.razorpay.com/v1/checkout.js" />
-      
-      <div className="bg-white border-b py-4 mb-8">
-        <div className="max-w-4xl mx-auto px-4 flex items-center justify-between">
-            <Link href="/" className="font-bold flex items-center gap-2 text-gray-600">
-                <ArrowLeft size={18} /> Back
-            </Link>
-            <div className="text-sm font-bold text-green-700 flex items-center gap-2">
-                <Lock size={14} /> 100% Secure Payment
-            </div>
-        </div>
-      </div>
-
-      <main className="max-w-4xl mx-auto px-4 grid grid-cols-1 md:grid-cols-12 gap-8">
+    <div className="max-w-md mx-auto p-4 pt-8">
+        <Script src="https://checkout.razorpay.com/v1/checkout.js" />
         
-        {/* Left: Form */}
-        <div className="md:col-span-7 space-y-6">
-            <form onSubmit={handlePayment} className="space-y-6">
-                <div className="bg-white p-6 rounded-xl shadow-sm space-y-4">
-                    <h2 className="text-lg font-bold mb-2">Shipping Details</h2>
-                    <input name="name" onChange={handleChange} required type="text" placeholder="Full Name" className="w-full border p-3 rounded-lg outline-black" />
-                    <div className="grid grid-cols-2 gap-4">
-                        <input name="email" onChange={handleChange} required type="email" placeholder="Email" className="w-full border p-3 rounded-lg outline-black" />
-                        <input name="phone" onChange={handleChange} required type="tel" placeholder="Phone Number" className="w-full border p-3 rounded-lg outline-black" />
-                    </div>
-                    <input name="address" onChange={handleChange} required type="text" placeholder="Address" className="w-full border p-3 rounded-lg outline-black" />
-                    <div className="grid grid-cols-3 gap-4">
-                        <input name="city" onChange={handleChange} required type="text" placeholder="City" className="w-full border p-3 rounded-lg outline-black" />
-                        <input name="state" onChange={handleChange} required type="text" placeholder="State" className="w-full border p-3 rounded-lg outline-black" />
-                        <input name="zip" onChange={handleChange} required type="text" placeholder="Pincode" className="w-full border p-3 rounded-lg outline-black" />
-                    </div>
-                </div>
+        <div className="bg-white p-6 rounded-2xl shadow-xl border border-gray-100">
+            <div className="flex items-center gap-2 mb-6 text-green-700 bg-green-50 p-3 rounded-lg">
+                <ShieldCheck size={20} /> <span className="font-bold text-sm">256-Bit Secure SSL Payment</span>
+            </div>
 
-                <button disabled={isProcessing} type="submit" className="w-full bg-brand-dark text-white font-bold text-xl py-4 rounded-xl hover:bg-black transition-all shadow-lg disabled:opacity-70">
-                    {isProcessing ? "Processing..." : `Pay ₹${(product.price * initialQty).toLocaleString('en-IN')}`}
+            <div className="mb-6 text-center">
+                <p className="text-gray-500 text-sm">Total Amount To Pay</p>
+                <h1 className="text-4xl font-black text-gray-900">₹{product.price}</h1>
+            </div>
+
+            {/* Payment Methods Visual */}
+            <div className="grid grid-cols-3 gap-3 mb-8">
+                <div className="border rounded-xl p-3 flex flex-col items-center gap-2 bg-gray-50">
+                    <img src="https://cdn.iconscout.com/icon/free/png-256/free-upi-2085056-1747946.png" className="w-8 h-8 object-contain" />
+                    <span className="text-[10px] font-bold">UPI</span>
+                </div>
+                <div className="border rounded-xl p-3 flex flex-col items-center gap-2 bg-gray-50">
+                    <CreditCard size={24} className="text-blue-600"/>
+                    <span className="text-[10px] font-bold">Cards</span>
+                </div>
+                <div className="border rounded-xl p-3 flex flex-col items-center gap-2 bg-gray-50">
+                    <Smartphone size={24} className="text-purple-600"/>
+                    <span className="text-[10px] font-bold">NetBanking</span>
+                </div>
+            </div>
+
+            <form onSubmit={handlePay} className="space-y-4">
+                <h3 className="font-bold text-sm uppercase text-gray-400">Shipping Details</h3>
+                <input required placeholder="Full Name" className="w-full border p-3 rounded-lg" onChange={e => setForm({...form, name: e.target.value})} />
+                <input required placeholder="Phone Number" type="tel" className="w-full border p-3 rounded-lg" onChange={e => setForm({...form, phone: e.target.value})} />
+                <input required placeholder="Email" type="email" className="w-full border p-3 rounded-lg" onChange={e => setForm({...form, email: e.target.value})} />
+                <input required placeholder="Full Address with Pincode" className="w-full border p-3 rounded-lg" onChange={e => setForm({...form, address: e.target.value})} />
+                
+                <button disabled={isProcessing} className="w-full bg-black text-white py-4 rounded-xl font-bold text-lg hover:opacity-90 transition-opacity mt-4">
+                    {isProcessing ? "Connecting to Bank..." : "Proceed to Pay"}
                 </button>
             </form>
         </div>
-
-        {/* Right: Summary */}
-        <div className="md:col-span-5">
-            <div className="bg-white p-6 rounded-xl shadow-sm sticky top-24">
-                <h3 className="font-bold text-gray-500 text-xs uppercase tracking-wider mb-4">Order Summary</h3>
-                <div className="flex gap-4 border-b pb-4 mb-4">
-                    <div className="flex-1">
-                        <h4 className="font-bold text-gray-900">{product.name}</h4>
-                        <p className="text-sm text-gray-500">Quantity: {initialQty}</p>
-                    </div>
-                    <div className="font-bold">₹{product.price.toLocaleString('en-IN')}</div>
-                </div>
-                
-                <div className="space-y-2 py-4 border-b mb-4 text-sm text-gray-600">
-                    <div className="flex justify-between"><span>Subtotal</span><span>₹{(product.price * initialQty).toLocaleString('en-IN')}</span></div>
-                    <div className="flex justify-between text-green-600 font-bold"><span>Shipping</span><span>Free</span></div>
-                </div>
-
-                <div className="flex justify-between items-center text-xl font-extrabold text-gray-900">
-                    <span>Total</span>
-                    <span>₹{(product.price * initialQty).toLocaleString('en-IN')}</span>
-                </div>
-            </div>
-        </div>
-      </main>
-    </>
+    </div>
   );
 }
 
-// 2. Export the main page wrapped in Suspense
 export default function CheckoutPage() {
-  return (
-    <div className="min-h-screen bg-gray-50 text-gray-800 font-sans pb-10">
-      <Suspense fallback={<div className="p-10 text-center">Loading Checkout...</div>}>
-        <CheckoutContent />
-      </Suspense>
-    </div>
-  );
+    return <Suspense fallback={<div>Loading...</div>}><CheckoutForm/></Suspense>;
 }

@@ -2,44 +2,79 @@ import { NextResponse } from 'next/server';
 import dbConnect from '../../lib/mongodb';
 import Product from '../../models/product';
 
-export async function GET() {
-  await dbConnect();
-  
-  let product = await Product.findOne({ sku: 'SNS-MINI-PK01' });
+export async function GET(req) {
+  try {
+    await dbConnect();
+    
+    // 1. Get Store ID safely
+    const { searchParams } = new URL(req.url);
+    const storeId = searchParams.get('storeId') || process.env.NEXT_PUBLIC_STORE_ID || 'chopper';
 
-  if (!product) {
-    product = new Product({
-      sku: 'SNS-MINI-PK01',
-      name: "SnapNShop Wireless Mini Chopper",
-      price: 1499,
-      originalPrice: 2999,
-      currency: 'INR',
-      stock: 50,
-      // Default image if none exists
-      images: ['/chopper.webp'], 
-      specs: {
-        height: "130mm",
-        width: "92mm",
-        capacity: "250ml",
-        battery: "USB Rechargeable",
-        blades: "304 Stainless Steel"
+    console.log(`[API] Fetching product for store: ${storeId}`);
+
+    // 2. Try to find the product
+    let product = await Product.findOne({ storeId });
+
+    // 3. If no product exists, create it (Auto-Setup)
+    if (!product) {
+      console.log(`[API] Product not found. Creating default for: ${storeId}`);
+      
+      try {
+        product = new Product({
+          storeId,
+          sku: `SNS-${storeId.toUpperCase()}-001`,
+          name: `SnapNShop ${storeId.charAt(0).toUpperCase() + storeId.slice(1)}`,
+          price: 999,
+          originalPrice: 1999,
+          stock: 100,
+          images: ['/chopper.webp'],
+          description: 'Welcome to your new store! Go to the Admin Panel to edit this description.',
+          features: ['Premium Quality', 'Fast Shipping'],
+          theme: {
+            headline: 'Welcome to our Store',
+            subHeadline: 'Premium Quality',
+            primaryColor: '#E07A72'
+          }
+        });
+
+        await product.save();
+        console.log(`[API] Successfully created default product.`);
+      } catch (saveError) {
+        console.error("[API] Failed to save default product:", saveError);
+        throw saveError; // Re-throw to be caught below
       }
-    });
-    await product.save();
-  }
+    }
 
-  return NextResponse.json(product);
+    return NextResponse.json(product);
+    
+  } catch (error) {
+    console.error("[API CRASH] Error in GET /api/product:", error);
+    // Return the actual error message to the client for debugging
+    return NextResponse.json(
+      { error: "Internal Server Error", details: error.message }, 
+      { status: 500 }
+    );
+  }
 }
 
 export async function POST(req) {
-  await dbConnect();
-  const data = await req.json();
+  try {
+    await dbConnect();
+    const data = await req.json();
+    const { storeId } = data;
 
-  const product = await Product.findOneAndUpdate(
-    { sku: 'SNS-MINI-PK01' }, 
-    data, 
-    { new: true, upsert: true }
-  );
+    if (!storeId) return NextResponse.json({ error: "Store ID required" }, { status: 400 });
 
-  return NextResponse.json(product);
+    // Update or Create
+    const product = await Product.findOneAndUpdate(
+      { storeId }, 
+      data, 
+      { new: true, upsert: true }
+    );
+
+    return NextResponse.json(product);
+  } catch (error) {
+    console.error("[API CRASH] Error in POST /api/product:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 }
