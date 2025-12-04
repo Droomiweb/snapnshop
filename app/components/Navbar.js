@@ -63,8 +63,6 @@ export default function Navbar() {
                     </div>
                 </div>
             </div>
-
-            <Link href="/admin" className="hover:text-brand-dark transition-colors text-gray-400">Admin</Link>
             
             <div className="relative group cursor-pointer">
                <ShoppingCart className="w-6 h-6 text-gray-800" />
