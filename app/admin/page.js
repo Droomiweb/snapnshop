@@ -331,27 +331,36 @@ export default function SuperAdminPanel() {
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
             <table className="w-full text-left text-sm">
               <thead className="bg-gray-50 text-gray-500 uppercase text-xs font-bold border-b">
-                <tr><th className="p-5">Order ID</th><th className="p-5">Customer</th><th className="p-5">Shipping Address</th><th className="p-5">Status</th></tr>
+                <tr><th className="p-5">Order ID</th><th className="p-5">Customer</th><th className="p-5">Detailed Address</th><th className="p-5">Status</th></tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {orders.map(o => (
                   <tr key={o._id} className="hover:bg-gray-50/50">
-                    <td className="p-5 font-mono font-bold text-gray-600">{o.orderId}</td>
+                    <td className="p-5 font-mono font-bold text-gray-600 align-top">{o.orderId}</td>
                     
-                    {/* Customer Name & Phone */}
+                    {/* Customer */}
                     <td className="p-5 align-top">
                         <div className="font-bold text-gray-900">{o.customer.name}</div>
                         <div className="text-xs text-gray-500">{o.customer.phone}</div>
+                        <div className="text-xs text-gray-400">{o.customer.email}</div>
                     </td>
 
-                    {/* NEW: Address Column */}
-                    <td className="p-5 align-top">
-                        <div className="text-sm font-medium text-gray-800">{o.customer.address}</div>
-                        <div className="text-xs text-gray-500">{o.customer.city}, {o.customer.state}</div>
-                        <div className="text-xs text-gray-500 font-bold">PIN: {o.customer.zip}</div>
+                    {/* NEW: Detailed Address */}
+                    <td className="p-5 align-top max-w-xs">
+                        {o.customer.houseName && <div className="text-xs font-bold text-gray-900">{o.customer.houseName}</div>}
+                        <div className="text-sm font-bold text-gray-800">
+                            {o.customer.houseNumber ? `#${o.customer.houseNumber}, ` : ''}{o.customer.address}
+                        </div>
+                        {o.customer.landmark && <div className="text-xs text-gray-500 italic">Near {o.customer.landmark}</div>}
+                        <div className="text-xs text-gray-600 mt-1">
+                            {o.customer.place}, {o.customer.city}
+                        </div>
+                        <div className="text-xs text-gray-600 font-bold">
+                            {o.customer.district}, {o.customer.state} - {o.customer.zip}
+                        </div>
                     </td>
 
-                    <td className="p-5"><span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${o.status === 'Paid' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>{o.status}</span></td>
+                    <td className="p-5 align-top"><span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${o.status === 'Paid' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>{o.status}</span></td>
                   </tr>
                 ))}
               </tbody>

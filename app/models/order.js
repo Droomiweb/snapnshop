@@ -1,16 +1,22 @@
 import mongoose from 'mongoose';
 
 const OrderSchema = new mongoose.Schema({
-  storeId: { type: String, required: true, index: true }, // The website this order came from
+  storeId: { type: String, required: true, index: true }, 
   orderId: { type: String, required: true, unique: true },
   customer: {
     name: String,
     email: String,
     phone: String,
-    address: String,
+    // --- Detailed Address Fields ---
+    houseNumber: String,
+    houseName: String,
+    address: String,     // Street / Road / Area
+    landmark: String,
+    place: String,
     city: String,
-    zip: String,
-    state: String
+    district: String,
+    state: String,
+    zip: String
   },
   items: [{
     sku: String,

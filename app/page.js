@@ -56,7 +56,7 @@ export default function DynamicLandingPage() {
       });
   }, [storeId]);
 
-  // Auto-Scroll Logic
+  // Auto-Scroll Logic (Cycles every 3 seconds)
   useEffect(() => {
     if (!product || !product.images || product.images.length <= 1 || isPaused) return;
     
@@ -78,6 +78,7 @@ export default function DynamicLandingPage() {
   if (loading) return <div className="min-h-screen flex items-center justify-center text-gray-500">Loading Store...</div>;
   if (!product) return <div className="min-h-screen flex items-center justify-center text-gray-500">Store not found.</div>;
 
+  // Fallback if no images exist
   const images = product.images && product.images.length > 0 ? product.images : ['/chopper.webp'];
   const activeImage = images[activeImageIndex];
 
@@ -86,12 +87,16 @@ export default function DynamicLandingPage() {
       
       {/* --- HERO SECTION --- */}
       <section className="pt-8 pb-12 md:pt-16 md:pb-20 bg-gray-50/50">
-        <div className="max-w-6xl mx-auto px-4 grid md:grid-cols-2 gap-10 items-start">
+        <div className="max-w-6xl mx-auto px-4 grid md:grid-cols-2 gap-6 md:gap-10 items-start">
             
-            {/* LEFT: GALLERY */}
-            <div className="space-y-4 max-w-lg mx-auto w-full sticky top-24">
+            {/* LEFT: GALLERY 
+                FIX: Removed sticky from mobile (added md: prefix)
+                FIX: Adjusted z-index to ensure it doesn't overlap navbar
+            */}
+            <div className="space-y-4 max-w-lg mx-auto w-full relative md:sticky md:top-24 z-0">
+                {/* Main Image Display */}
                 <div 
-                    className="relative aspect-square bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer group"
+                    className="relative aspect-square bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer group z-0"
                     onMouseEnter={() => setIsPaused(true)}
                     onMouseLeave={() => setIsPaused(false)}
                 >
@@ -101,30 +106,33 @@ export default function DynamicLandingPage() {
                         className="object-contain w-full h-full p-2 transition-transform duration-500 group-hover:scale-105"
                     />
                     
+                    {/* Hover Navigation Arrows */}
                     {images.length > 1 && (
                         <>
                             <button 
                                 onClick={(e) => { e.stopPropagation(); setActiveImageIndex((activeImageIndex - 1 + images.length) % images.length)}} 
-                                className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/90 p-2 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white text-gray-700"
+                                className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/90 p-2 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white text-gray-700 z-10"
                             >
                                 <ChevronLeft size={20}/>
                             </button>
                             <button 
                                 onClick={(e) => { e.stopPropagation(); setActiveImageIndex((activeImageIndex + 1) % images.length)}} 
-                                className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/90 p-2 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white text-gray-700"
+                                className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/90 p-2 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white text-gray-700 z-10"
                             >
                                 <ChevronRight size={20}/>
                             </button>
                         </>
                     )}
 
+                    {/* Discount Tag */}
                     {product.originalPrice > product.price && (
-                        <div className="absolute top-3 left-3 bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded shadow-sm">
+                        <div className="absolute top-3 left-3 bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded shadow-sm z-10">
                             {Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}% OFF
                         </div>
                     )}
                 </div>
 
+                {/* Thumbnails Row */}
                 {images.length > 1 && (
                     <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide justify-center">
                         {images.map((img, idx) => (
@@ -190,18 +198,28 @@ export default function DynamicLandingPage() {
                     </p>
                 </div>
 
+                {/* Trust Features Grid */}
                 <div className="grid grid-cols-3 gap-3 border-t border-gray-100 pt-6">
                     <div className="flex flex-col items-center text-center gap-2">
                         <div className="p-2 bg-gray-50 rounded-full text-gray-600"><Truck size={18}/></div>
-                        <div><p className="text-xs font-bold text-gray-900">Free Shipping</p><p className="text-[10px] text-gray-500">Across India</p></div>
+                        <div>
+                            <p className="text-xs font-bold text-gray-900">Free Shipping</p>
+                            <p className="text-[10px] text-gray-500">Across India</p>
+                        </div>
                     </div>
                     <div className="flex flex-col items-center text-center gap-2">
                         <div className="p-2 bg-gray-50 rounded-full text-gray-600"><RotateCcw size={18}/></div>
-                        <div><p className="text-xs font-bold text-gray-900">7 Day Returns</p><p className="text-[10px] text-gray-500">Easy Policy</p></div>
+                        <div>
+                            <p className="text-xs font-bold text-gray-900">7 Day Returns</p>
+                            <p className="text-[10px] text-gray-500">Easy Policy</p>
+                        </div>
                     </div>
                     <div className="flex flex-col items-center text-center gap-2">
                         <div className="p-2 bg-gray-50 rounded-full text-gray-600"><ShieldCheck size={18}/></div>
-                        <div><p className="text-xs font-bold text-gray-900">Warranty</p><p className="text-[10px] text-gray-500">1 Year Brand</p></div>
+                        <div>
+                            <p className="text-xs font-bold text-gray-900">Warranty</p>
+                            <p className="text-[10px] text-gray-500">1 Year Brand</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -226,6 +244,7 @@ export default function DynamicLandingPage() {
                           <p className="text-sm text-gray-600 leading-relaxed">{feat}</p>
                       </div>
                   ))}
+                  
                   {(!product.features || product.features.length === 0) && (
                       <div className="col-span-3 text-center py-8 text-sm text-gray-400 border border-dashed rounded-xl">
                           No features added yet. Go to Admin Panel.
@@ -235,8 +254,8 @@ export default function DynamicLandingPage() {
           </div>
       </section>
 
-      {/* --- NEW: CUSTOMER REVIEWS SECTION --- */}
-      <section className="py-16 bg-gray-50 border-t border-gray-100">
+       {/* --- CUSTOMER REVIEWS SECTION --- */}
+       <section className="py-16 bg-gray-50 border-t border-gray-100">
         <div className="max-w-6xl mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-black text-gray-900 mb-4">What our customers say</h2>

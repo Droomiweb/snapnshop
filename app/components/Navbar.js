@@ -105,8 +105,6 @@ export default function Navbar() {
                         <FileText size={16} /> Terms & Conditions
                     </Link>
                 </div>
-
-                <Link href="/admin" onClick={closeMenu} className="block font-bold text-gray-300 text-sm">Admin Login</Link>
             </div>
         </div>
       )}
