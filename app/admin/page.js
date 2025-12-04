@@ -4,7 +4,7 @@ import {
   Package, Save, BarChart3, ShoppingBag, Edit3, Globe, 
   Plus, Trash2, Image as ImageIcon, List, ChevronRight, 
   TrendingUp, MousePointer, Users, UploadCloud, Loader2,
-  Truck, X, Menu // Added Menu icon
+  Truck, X, Menu 
 } from 'lucide-react';
 
 export default function SuperAdminPanel() {
@@ -392,14 +392,13 @@ export default function SuperAdminPanel() {
           </div>
         )}
 
-        {/* ORDERS TAB */}
+        {/* ORDERS TAB (UPDATED WITH COMPLETE DETAILS) */}
         {activeTab === 'ORDERS' && (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-            {/* WRAPPED IN OVERFLOW-X-AUTO FOR MOBILE SCROLLING */}
             <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm min-w-[800px]">
                 <thead className="bg-gray-50 text-gray-500 uppercase text-xs font-bold border-b">
-                    <tr><th className="p-5">Order ID</th><th className="p-5">Customer</th><th className="p-5">Address</th><th className="p-5">Status</th><th className="p-5">Action</th></tr>
+                    <tr><th className="p-5">Order ID</th><th className="p-5">Customer</th><th className="p-5">Full Address</th><th className="p-5">Status</th><th className="p-5">Action</th></tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                     {orders.map(o => (
@@ -408,11 +407,29 @@ export default function SuperAdminPanel() {
                         <td className="p-5 align-top">
                             <div className="font-bold text-gray-900">{o.customer.name}</div>
                             <div className="text-xs text-gray-500">{o.customer.phone}</div>
+                            {/* ADDED EMAIL */}
+                            <div className="text-xs text-blue-600 break-all">{o.customer.email}</div>
                         </td>
+                        
+                        {/* UPDATED: FULL ADDRESS DETAILS */}
                         <td className="p-5 align-top max-w-xs whitespace-normal">
-                            <div className="text-sm font-bold text-gray-800">{o.customer.houseNumber ? `#${o.customer.houseNumber}, ` : ''}{o.customer.address}</div>
-                            <div className="text-xs text-gray-600">{o.customer.city}, {o.customer.state} - {o.customer.zip}</div>
+                            {o.customer.houseName && <div className="text-xs font-bold text-gray-800">{o.customer.houseName}</div>}
+                            
+                            <div className="text-sm text-gray-800">
+                                {o.customer.houseNumber ? `#${o.customer.houseNumber}, ` : ''}{o.customer.address}
+                            </div>
+                            
+                            {o.customer.landmark && <div className="text-xs text-gray-500 italic">Near {o.customer.landmark}</div>}
+                            
+                            <div className="text-xs text-gray-600 mt-1">
+                                {o.customer.place}, {o.customer.city}
+                            </div>
+                            
+                            <div className="text-xs text-gray-600">
+                                {o.customer.district ? `${o.customer.district}, ` : ''}{o.customer.state} - <span className="font-bold">{o.customer.zip}</span>
+                            </div>
                         </td>
+
                         <td className="p-5 align-top"><span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${o.status === 'Paid' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>{o.status}</span></td>
                         
                         <td className="p-5 align-top">

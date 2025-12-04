@@ -44,13 +44,9 @@ export default function Footer() {
               <Mail size={16} className="shrink-0 text-brand-pink" /> 
               <span>support@snapnshop.com</span>
             </li>
-            <li className="flex gap-2 items-center">
-              <Phone size={16} className="shrink-0 text-brand-pink" /> 
-              <span>+91 98765 43210</span>
-            </li>
             <li className="flex gap-2 items-start">
               <MapPin size={16} className="shrink-0 text-brand-pink mt-1" /> 
-              <span>123, Tech Park, Bangalore, Karnataka, 560001</span>
+              <span>Kochi , Panampilly nagar</span>
             </li>
           </ul>
         </div>
