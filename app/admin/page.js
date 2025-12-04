@@ -4,12 +4,15 @@ import {
   Package, Save, BarChart3, ShoppingBag, Edit3, Globe, 
   Plus, Trash2, Image as ImageIcon, List, ChevronRight, 
   TrendingUp, MousePointer, Users, UploadCloud, Loader2,
-  Truck, X
+  Truck, X, Menu // Added Menu icon
 } from 'lucide-react';
 
 export default function SuperAdminPanel() {
   const [activeTab, setActiveTab] = useState('DASHBOARD');
   const [loading, setLoading] = useState(true);
+  
+  // Responsive Sidebar State
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
   // Data State
   const [stores, setStores] = useState([]); 
@@ -17,7 +20,7 @@ export default function SuperAdminPanel() {
   const [analytics, setAnalytics] = useState(null);
   const [orders, setOrders] = useState([]);
 
-  // --- NEW: Fulfillment State ---
+  // Fulfillment State
   const [isShipModalOpen, setIsShipModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [trackingForm, setTrackingForm] = useState({ courier: '', trackingNumber: '', trackingUrl: '' });
@@ -38,7 +41,6 @@ export default function SuperAdminPanel() {
     },
   });
   
-  // Upload State
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef(null);
   const [newFeature, setNewFeature] = useState('');
@@ -74,7 +76,6 @@ export default function SuperAdminPanel() {
       setOrders(data.orders);
       setAnalytics(data.analytics);
       
-      // Merge with defaults
       setProductConfig(prev => ({
         ...prev,
         ...data.product,
@@ -116,7 +117,6 @@ export default function SuperAdminPanel() {
     }
   };
 
-  // --- NEW: Order Fulfillment Logic ---
   const openShipModal = (order) => {
     setSelectedOrder(order);
     setTrackingForm({ courier: 'BlueDart', trackingNumber: '', trackingUrl: '' });
@@ -141,7 +141,7 @@ export default function SuperAdminPanel() {
         if (res.ok) {
             alert("Order Shipped! Customer has been emailed.");
             setIsShipModalOpen(false);
-            fetchStoreData(selectedStore); // Refresh list
+            fetchStoreData(selectedStore);
         } else {
             alert("Failed to update order.");
         }
@@ -158,7 +158,6 @@ export default function SuperAdminPanel() {
     if (!file) return;
 
     setIsUploading(true);
-
     try {
       const response = await fetch(
         `/api/upload?filename=${file.name}`,
@@ -206,13 +205,30 @@ export default function SuperAdminPanel() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 flex font-sans text-gray-900">
+    <div className="min-h-screen bg-gray-100 flex font-sans text-gray-900 relative">
+      
+      {/* MOBILE OVERLAY BACKDROP */}
+      {isSidebarOpen && (
+        <div 
+            className="fixed inset-0 bg-black/50 z-20 md:hidden backdrop-blur-sm"
+            onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
       {/* SIDEBAR */}
-      <aside className="w-64 bg-gray-900 text-white flex flex-col fixed h-full z-10 shadow-2xl">
-        <div className="p-6 border-b border-gray-800">
+      <aside className={`
+        fixed top-0 left-0 h-full w-64 bg-gray-900 text-white flex flex-col z-30 shadow-2xl transition-transform duration-300 ease-in-out
+        ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} 
+        md:translate-x-0
+      `}>
+        <div className="p-6 border-b border-gray-800 flex justify-between items-center">
           <h1 className="font-black text-xl tracking-tight flex items-center gap-2">
             SnapNShop <span className="text-brand-pink text-xs bg-white/10 px-2 py-1 rounded">ADMIN</span>
           </h1>
+          {/* Close Button Mobile */}
+          <button onClick={() => setIsSidebarOpen(false)} className="md:hidden text-gray-400 hover:text-white">
+            <X size={20} />
+          </button>
         </div>
         
         <div className="p-6">
@@ -231,29 +247,47 @@ export default function SuperAdminPanel() {
         </div>
 
         <nav className="flex-1 px-4 space-y-1">
-          <TabButton icon={<BarChart3 size={18}/>} label="Overview" active={activeTab === 'DASHBOARD'} onClick={() => setActiveTab('DASHBOARD')} />
-          <TabButton icon={<ShoppingBag size={18}/>} label="Orders" active={activeTab === 'ORDERS'} onClick={() => setActiveTab('ORDERS')} />
-          <TabButton icon={<Edit3 size={18}/>} label="Website Editor" active={activeTab === 'CMS'} onClick={() => setActiveTab('CMS')} />
+          <TabButton icon={<BarChart3 size={18}/>} label="Overview" active={activeTab === 'DASHBOARD'} onClick={() => {setActiveTab('DASHBOARD'); setIsSidebarOpen(false);}} />
+          <TabButton icon={<ShoppingBag size={18}/>} label="Orders" active={activeTab === 'ORDERS'} onClick={() => {setActiveTab('ORDERS'); setIsSidebarOpen(false);}} />
+          <TabButton icon={<Edit3 size={18}/>} label="Website Editor" active={activeTab === 'CMS'} onClick={() => {setActiveTab('CMS'); setIsSidebarOpen(false);}} />
         </nav>
       </aside>
 
       {/* MAIN CONTENT */}
-      <main className="flex-1 ml-64 p-8 md:p-12 max-w-7xl">
-        <header className="flex justify-between items-end mb-10">
-          <div>
-            <h2 className="text-3xl font-black text-gray-900 tracking-tight">
-              {activeTab === 'DASHBOARD' && 'Dashboard'}
-              {activeTab === 'ORDERS' && 'Orders'}
-              {activeTab === 'CMS' && 'Editor'}
-            </h2>
-            <p className="text-gray-500 mt-1">Manage your {selectedStore} store</p>
+      <main className="flex-1 md:ml-64 p-4 md:p-12 max-w-7xl w-full transition-all duration-300">
+        
+        {/* HEADER */}
+        <header className="flex flex-col md:flex-row md:justify-between md:items-end mb-8 md:mb-10 gap-4">
+          <div className="flex items-center gap-4">
+            {/* Hamburger Button */}
+            <button 
+                onClick={() => setIsSidebarOpen(true)}
+                className="md:hidden p-2 bg-white rounded-lg shadow-sm border border-gray-200 text-gray-700"
+            >
+                <Menu size={24} />
+            </button>
+            <div>
+                <h2 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight">
+                {activeTab === 'DASHBOARD' && 'Dashboard'}
+                {activeTab === 'ORDERS' && 'Orders'}
+                {activeTab === 'CMS' && 'Editor'}
+                </h2>
+                <p className="text-sm md:text-base text-gray-500 mt-1">Manage your {selectedStore} store</p>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm border border-gray-200 self-start md:self-auto">
+            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+            <span className="text-xs font-bold text-gray-600 uppercase tracking-wide">
+              Live: {selectedStore}
+            </span>
           </div>
         </header>
 
         {/* DASHBOARD TAB */}
         {activeTab === 'DASHBOARD' && analytics && (
           <div className="space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
               <StatCard label="Total Visits" value={analytics.pageViews} icon={<Users size={20} className="text-blue-600"/>} color="bg-blue-50" />
               <StatCard label="Checkout Clicks" value={analytics.checkoutInitiated} icon={<MousePointer size={20} className="text-purple-600"/>} color="bg-purple-50" />
               <StatCard label="Total Orders" value={analytics.purchases} icon={<ShoppingBag size={20} className="text-green-600"/>} color="bg-green-50" />
@@ -266,17 +300,16 @@ export default function SuperAdminPanel() {
         {activeTab === 'CMS' && productConfig && (
           <div className="space-y-8 max-w-5xl">
             {/* 1. Basic Info */}
-            <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-200">
-               {/* Same Editor Code as before... */}
+            <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-gray-200">
                <div className="flex items-center gap-3 border-b border-gray-100 pb-4 mb-6">
                 <div className="bg-blue-50 p-2 rounded-lg text-blue-600"><Package size={20}/></div>
                 <h3 className="font-bold text-lg text-gray-900">Product Details</h3>
               </div>
-              <div className="grid grid-cols-2 gap-8 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 mb-6">
                 <InputGroup label="Product Name" value={productConfig.name} onChange={v => setProductConfig({ ...productConfig, name: v })} />
                 <InputGroup label="SKU" value={productConfig.sku} disabled onChange={() => {}} />
               </div>
-              <div className="grid grid-cols-2 gap-8 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 mb-6">
                 <InputGroup label="Price (₹)" type="number" value={productConfig.price} onChange={v => setProductConfig({ ...productConfig, price: v })} />
                 <InputGroup label="Original Price (₹)" type="number" value={productConfig.originalPrice} onChange={v => setProductConfig({ ...productConfig, originalPrice: v })} />
               </div>
@@ -287,8 +320,7 @@ export default function SuperAdminPanel() {
             </div>
 
             {/* 2. Visuals */}
-            <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-200">
-              {/* Same Gallery Code ... */}
+            <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-gray-200">
               <div className="flex items-center gap-3 border-b border-gray-100 pb-4 mb-6">
                 <div className="bg-purple-50 p-2 rounded-lg text-purple-600"><ImageIcon size={20}/></div>
                 <h3 className="font-bold text-lg text-gray-900">Gallery</h3>
@@ -313,9 +345,8 @@ export default function SuperAdminPanel() {
             </div>
 
             {/* 3. Features & Theme */}
-            <div className="grid md:grid-cols-2 gap-8">
-               {/* Same Features Code ... */}
-               <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-200">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+               <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-gray-200">
                 <div className="flex items-center gap-3 border-b border-gray-100 pb-4 mb-6">
                   <div className="bg-orange-50 p-2 rounded-lg text-orange-600"><List size={20}/></div>
                   <h3 className="font-bold text-lg text-gray-900">Features List</h3>
@@ -323,19 +354,18 @@ export default function SuperAdminPanel() {
                 <ul className="space-y-3 mb-6 max-h-60 overflow-y-auto pr-2">
                   {productConfig.features.map((feat, i) => (
                     <li key={i} className="flex justify-between items-center bg-gray-50 px-4 py-3 rounded-lg border border-gray-100 group">
-                      <span className="text-sm font-medium text-gray-700">{feat}</span>
-                      <button onClick={() => removeFeature(i)} className="text-gray-400 hover:text-red-500"><Trash2 size={14}/></button>
+                      <span className="text-sm font-medium text-gray-700 truncate">{feat}</span>
+                      <button onClick={() => removeFeature(i)} className="text-gray-400 hover:text-red-500 shrink-0"><Trash2 size={14}/></button>
                     </li>
                   ))}
                 </ul>
                 <div className="flex gap-2">
-                  <input placeholder="Add feature..." className="flex-1 border border-gray-300 p-2 rounded-lg text-sm" value={newFeature} onChange={(e) => setNewFeature(e.target.value)} />
-                  <button onClick={addFeature} className="bg-gray-900 text-white p-2 rounded-lg hover:bg-black"><Plus size={18}/></button>
+                  <input placeholder="Add feature..." className="flex-1 border border-gray-300 p-2 rounded-lg text-sm w-full" value={newFeature} onChange={(e) => setNewFeature(e.target.value)} />
+                  <button onClick={addFeature} className="bg-gray-900 text-white p-2 rounded-lg hover:bg-black shrink-0"><Plus size={18}/></button>
                 </div>
               </div>
 
-              <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-200">
-                 {/* Same Theme Code ... */}
+              <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-gray-200">
                  <div className="flex items-center gap-3 border-b border-gray-100 pb-4 mb-6">
                   <div className="bg-pink-50 p-2 rounded-lg text-pink-600"><Globe size={20}/></div>
                   <h3 className="font-bold text-lg text-gray-900">Theme Config</h3>
@@ -356,48 +386,50 @@ export default function SuperAdminPanel() {
             
             <div className="sticky bottom-4 z-20">
               <button onClick={handleSaveProduct} className="w-full bg-green-600 text-white py-4 rounded-xl font-bold hover:bg-green-700 transition-colors flex justify-center items-center gap-2 shadow-xl hover:shadow-2xl transform hover:-translate-y-1">
-                <Save size={20} /> Publish All Changes
+                <Save size={20} /> <span className="hidden sm:inline">Publish All Changes</span><span className="sm:hidden">Save</span>
               </button>
             </div>
           </div>
         )}
 
-        {/* ORDERS TAB (UPDATED WITH ACTIONS) */}
+        {/* ORDERS TAB */}
         {activeTab === 'ORDERS' && (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-gray-50 text-gray-500 uppercase text-xs font-bold border-b">
-                <tr><th className="p-5">Order ID</th><th className="p-5">Customer</th><th className="p-5">Address</th><th className="p-5">Status</th><th className="p-5">Action</th></tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {orders.map(o => (
-                  <tr key={o._id} className="hover:bg-gray-50/50">
-                    <td className="p-5 font-mono font-bold text-gray-600 align-top">{o.orderId}</td>
-                    <td className="p-5 align-top">
-                        <div className="font-bold text-gray-900">{o.customer.name}</div>
-                        <div className="text-xs text-gray-500">{o.customer.phone}</div>
-                    </td>
-                    <td className="p-5 align-top max-w-xs">
-                        <div className="text-sm font-bold text-gray-800">{o.customer.houseNumber ? `#${o.customer.houseNumber}, ` : ''}{o.customer.address}</div>
-                        <div className="text-xs text-gray-600">{o.customer.city}, {o.customer.state} - {o.customer.zip}</div>
-                    </td>
-                    <td className="p-5 align-top"><span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${o.status === 'Paid' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>{o.status}</span></td>
-                    
-                    {/* ACTION COLUMN */}
-                    <td className="p-5 align-top">
-                        {o.status === 'Paid' && o.supplierStatus !== 'Shipped' && (
-                            <button onClick={() => openShipModal(o)} className="bg-brand-dark text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-brand-pink transition-colors flex items-center gap-1">
-                                <Truck size={14} /> Ship
-                            </button>
-                        )}
-                        {o.supplierStatus === 'Shipped' && (
-                             <div className="text-xs text-blue-600 font-bold">Shipped<br/><span className="font-mono font-normal text-gray-500">{o.trackingNumber}</span></div>
-                        )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            {/* WRAPPED IN OVERFLOW-X-AUTO FOR MOBILE SCROLLING */}
+            <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm min-w-[800px]">
+                <thead className="bg-gray-50 text-gray-500 uppercase text-xs font-bold border-b">
+                    <tr><th className="p-5">Order ID</th><th className="p-5">Customer</th><th className="p-5">Address</th><th className="p-5">Status</th><th className="p-5">Action</th></tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                    {orders.map(o => (
+                    <tr key={o._id} className="hover:bg-gray-50/50">
+                        <td className="p-5 font-mono font-bold text-gray-600 align-top">{o.orderId}</td>
+                        <td className="p-5 align-top">
+                            <div className="font-bold text-gray-900">{o.customer.name}</div>
+                            <div className="text-xs text-gray-500">{o.customer.phone}</div>
+                        </td>
+                        <td className="p-5 align-top max-w-xs whitespace-normal">
+                            <div className="text-sm font-bold text-gray-800">{o.customer.houseNumber ? `#${o.customer.houseNumber}, ` : ''}{o.customer.address}</div>
+                            <div className="text-xs text-gray-600">{o.customer.city}, {o.customer.state} - {o.customer.zip}</div>
+                        </td>
+                        <td className="p-5 align-top"><span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${o.status === 'Paid' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>{o.status}</span></td>
+                        
+                        <td className="p-5 align-top">
+                            {o.status === 'Paid' && o.supplierStatus !== 'Shipped' && (
+                                <button onClick={() => openShipModal(o)} className="bg-brand-dark text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-brand-pink transition-colors flex items-center gap-1">
+                                    <Truck size={14} /> Ship
+                                </button>
+                            )}
+                            {o.supplierStatus === 'Shipped' && (
+                                <div className="text-xs text-blue-600 font-bold">Shipped<br/><span className="font-mono font-normal text-gray-500">{o.trackingNumber}</span></div>
+                            )}
+                        </td>
+                    </tr>
+                    ))}
+                </tbody>
+                </table>
+            </div>
           </div>
         )}
       </main>
@@ -474,7 +506,7 @@ const StatCard = ({ label, value, icon, color }) => (
   </div>
 );
 const InputGroup = ({ label, value, onChange, type = "text", disabled }) => (
-  <div className="group">
+  <div className="group w-full">
     <label className="block text-xs font-bold text-gray-500 uppercase mb-2 tracking-wider group-focus-within:text-brand-pink">{label}</label>
     <input type={type} disabled={disabled} value={value || ''} onChange={(e) => onChange(e.target.value)} className="w-full border border-gray-300 p-3.5 rounded-xl font-bold focus:ring-2 ring-brand-pink outline-none disabled:bg-gray-100 transition-all" placeholder={`Enter ${label}...`} />
   </div>
